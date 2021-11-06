@@ -51,7 +51,7 @@ public class Cliente extends Thread {
 				decryptKey = encryptKey;
 			} else {
 				instance = "RSA";
-				encryptKey = Util.getPublicAsymmetricKey("R"+this.id+"+");
+				encryptKey = Util.getPublicAsymmetricKey("R+");
 				decryptKey = Util.getPrivateAsymmetricKey("C"+this.id+"-");
 			}
 			encrypt = Cipher.getInstance(instance);
@@ -71,7 +71,9 @@ public class Cliente extends Thread {
 				if ( in != null )
 					in.close();
 				socket.close();
-				Util.barrier.await();
+				System.out.println("Tiempo total en gestión solicitud Cliente y preparación de su envío al Servidor (actual): " + Repetidor.tRES);
+				System.out.println("Tiempo total en gestión solicitud Servidor y preparación de su envío al Cliente (actual): " + Repetidor.tREC);
+				Util.barrier.await();				
 				System.exit(0);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -81,16 +83,18 @@ public class Cliente extends Thread {
 	
 	public static void main(String[] args) {
 		try (Scanner sc = new Scanner(System.in)) {
+			System.out.println("¿Desea cifrado simétrico (true) o asimétrico (false)?");
 			boolean simetrico = sc.nextBoolean();
+			System.out.println("¿Cuantos clientes quiere ejecutar?");
 			int clientes = sc.nextInt();
 			Util.symetric = simetrico;
 			if ( simetrico ) {
 				KeyGenerator kg = KeyGenerator.getInstance("AES");
 				kg.init(128);
 				BufferedWriter bw = new BufferedWriter( new FileWriter(new File("./data/keys.properties"), false));
-				for ( int i = 0; i < clientes; i++ ) {
-					SecretKey key = kg.generateKey();
-					bw.write("RS"+i+"="+Util.byte2str(key.getEncoded())+"\n");
+				SecretKey key = kg.generateKey();
+				bw.write("RS="+Util.byte2str(key.getEncoded())+"\n");				
+				for ( int i = 0; i < clientes; i++ ) {					
 					key = kg.generateKey();
 					bw.write("CR"+i+"="+Util.byte2str(key.getEncoded())+"\n");
 				}
@@ -102,14 +106,16 @@ public class Cliente extends Thread {
 				for ( int i = 0; i < clientes; i++ ) {
 					KeyPair key = kg.generateKeyPair();
 					bw.write("C"+i+"+="+Util.byte2str(key.getPublic().getEncoded())+"\n");
-					bw.write("C"+i+"-="+Util.byte2str(key.getPrivate().getEncoded())+"\n");
-					key = kg.generateKeyPair();
-					bw.write("R"+i+"+="+Util.byte2str(key.getPublic().getEncoded())+"\n");
-					bw.write("R"+i+"-="+Util.byte2str(key.getPrivate().getEncoded())+"\n");
-					key = kg.generateKeyPair();
-					bw.write("S"+i+"+="+Util.byte2str(key.getPublic().getEncoded())+"\n");
-					bw.write("S"+i+"-="+Util.byte2str(key.getPrivate().getEncoded())+"\n");
+					bw.write("C"+i+"-="+Util.byte2str(key.getPrivate().getEncoded())+"\n");					
 				}
+				
+				KeyPair key = kg.generateKeyPair();
+				bw.write("R+="+Util.byte2str(key.getPublic().getEncoded())+"\n");
+				bw.write("R-="+Util.byte2str(key.getPrivate().getEncoded())+"\n");
+				key = kg.generateKeyPair();
+				bw.write("S+="+Util.byte2str(key.getPublic().getEncoded())+"\n");
+				bw.write("S-="+Util.byte2str(key.getPrivate().getEncoded())+"\n");
+				
 				bw.close();
 			}
 			Util.initializeProperties();

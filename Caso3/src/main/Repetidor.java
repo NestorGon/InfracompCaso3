@@ -13,6 +13,11 @@ public class Repetidor extends Thread {
 	
 	private ServerSocket server;
 	
+	//Tiempo total de la recepción y envío de la solicitud al servidor
+	public static long tRES;
+	//Tiempo total de la recepción y envío de la solicitud al cliente
+	public static long tREC;
+	
 	public Repetidor() {
 		try {
 			server = new ServerSocket(8000);
@@ -44,12 +49,7 @@ public class Repetidor extends Thread {
 			try {
 				socket = new Socket("localhost",8080);
 				outServer = new PrintWriter(socket.getOutputStream(),true);
-				inServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				outServer.println("REPETIDOR_"+this.id);
-				String port = inServer.readLine().split("_")[1];
-				socket = new Socket("localhost",Integer.parseInt(port));
-				outServer = new PrintWriter(socket.getOutputStream(), true);
-				inServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				inServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
 				
 				Socket cliente = server.accept();
 				outClient = new PrintWriter(cliente.getOutputStream(), true);
@@ -62,13 +62,13 @@ public class Repetidor extends Thread {
 					instance = "AES/ECB/PKCS5Padding";
 					encryptKeyClient = Util.getSymmetricKey("CR"+this.id);
 					decryptKeyClient = encryptKeyClient;
-					encryptKeyServer = Util.getSymmetricKey("RS"+this.id);
+					encryptKeyServer = Util.getSymmetricKey("RS");
 					decryptKeyServer = encryptKeyServer;
 				} else {
 					instance = "RSA";
 					encryptKeyClient = Util.getPublicAsymmetricKey("C"+this.id+"+");
-					decryptKeyClient = Util.getPrivateAsymmetricKey("R"+this.id+"-");
-					encryptKeyServer = Util.getPublicAsymmetricKey("S"+this.id+"+");
+					decryptKeyClient = Util.getPrivateAsymmetricKey("R-");
+					encryptKeyServer = Util.getPublicAsymmetricKey("S+");
 					decryptKeyServer = decryptKeyClient;
 				}
 				encryptClient = Cipher.getInstance(instance);
@@ -80,10 +80,20 @@ public class Repetidor extends Thread {
 				decryptServer = Cipher.getInstance(instance);
 				decryptServer.init(Cipher.DECRYPT_MODE, decryptKeyServer);
 				
+				long startRES = System.currentTimeMillis();
+				//Recibir y desencriptar el mensaje del cliente
 				String message = Util.byte2str(decryptClient.doFinal(Util.str2byte(inClient.readLine())));
+				long endRES = System.currentTimeMillis();
+				Repetidor.tRES += endRES - startRES;
+				
+				//Encriptar y enviar mensaje al servidor
 				outServer.println(Util.byte2str(encryptServer.doFinal(Util.str2byte(message))));
 				
+				long startREC = System.currentTimeMillis();
 				String resp = Util.byte2str(decryptServer.doFinal(Util.str2byte(inServer.readLine())));
+				long endREC = System.currentTimeMillis();
+				Repetidor.tREC += endREC - startREC;
+				
 				outClient.println(Util.byte2str(encryptClient.doFinal(Util.str2byte(resp))));
 			} catch ( Exception e ) {
 				e.printStackTrace();

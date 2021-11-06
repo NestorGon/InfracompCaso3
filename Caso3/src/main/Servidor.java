@@ -23,40 +23,33 @@ public class Servidor extends Thread {
 	}
 	
 	private class ServidorDelegado extends Thread {
-		private ServerSocket server;
-		private int id;
-		public int port;
+		private PrintWriter out;	
+		private BufferedReader in;
 		
-		public ServidorDelegado(int id) {
+		public ServidorDelegado(BufferedReader in, PrintWriter out) {
 			try {
-				server = new ServerSocket(0);
-				port = server.getLocalPort();
-				this.id = id;
-				
+				this.out = out;
+				this.in = in;						
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 		
 		public void run() {
-			PrintWriter out = null;
-			BufferedReader in = null;
-			try {
-				Socket repetidor = server.accept();
-				out = new PrintWriter(repetidor.getOutputStream(),true);
-				in = new BufferedReader(new InputStreamReader(repetidor.getInputStream()));
-				
+			PrintWriter out = this.out;
+			BufferedReader in = this.in;
+			try {					
 				Cipher encrypt, decrypt;
 				String instance;
 				Key encryptKey, decryptKey;
 				if ( Util.symetric ) {
 					instance = "AES/ECB/PKCS5Padding";
-					encryptKey = Util.getSymmetricKey("RS"+this.id);
+					encryptKey = Util.getSymmetricKey("RS");
 					decryptKey = encryptKey;
 				} else {
 					instance = "RSA";
-					encryptKey = Util.getPublicAsymmetricKey("R"+this.id+"+");
-					decryptKey = Util.getPrivateAsymmetricKey("S"+this.id+"-");
+					encryptKey = Util.getPublicAsymmetricKey("R+");
+					decryptKey = Util.getPrivateAsymmetricKey("S-");
 				}
 				encrypt = Cipher.getInstance(instance);
 				encrypt.init(Cipher.ENCRYPT_MODE, encryptKey);
@@ -73,8 +66,7 @@ public class Servidor extends Thread {
 					if ( out != null )
 						out.close();
 					if ( in != null )
-						in.close();
-					server.close();
+						in.close();					
 				} catch (Exception e) {
 					e.printStackTrace();
 				}	
@@ -90,22 +82,16 @@ public class Servidor extends Thread {
 				Socket s = server.accept();
 				out = new PrintWriter(s.getOutputStream(), true);
 				in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-				String serverId = in.readLine().split("_")[1];
-				ServidorDelegado delegado = new ServidorDelegado(Integer.parseInt(serverId));
-				delegado.start();
-				out.println("OK_"+delegado.port);
+				ServidorDelegado delegado = new ServidorDelegado(in, out);
+				delegado.start();				
 			} catch (Exception e) {
 				e.printStackTrace();
-			} finally {
-				try {
-					if ( out != null )
-						out.close();
-					if ( in != null )
-						in.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}	
-			}
+			} 			
+		}
+		try {
+			server.close();			
+		} catch (IOException e) {			
+			e.printStackTrace();
 		}
 	}
 	
