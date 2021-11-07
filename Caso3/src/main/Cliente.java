@@ -71,8 +71,8 @@ public class Cliente extends Thread {
 				if ( in != null )
 					in.close();
 				socket.close();
-				System.out.println("Tiempo total en gestión solicitud Cliente y preparación de su envío al Servidor (actual): " + Repetidor.tRES);
-				System.out.println("Tiempo total en gestión solicitud Servidor y preparación de su envío al Cliente (actual): " + Repetidor.tREC);
+				//System.out.println("Tiempo total en gestión solicitud Cliente y preparación de su envío al Servidor (actual): " + Repetidor.tRES);
+				//System.out.println("Tiempo total en gestión solicitud Servidor y preparación de su envío al Cliente (actual): " + Repetidor.tREC);
 				Util.barrier.await();				
 				System.exit(0);
 			} catch (Exception e) {
